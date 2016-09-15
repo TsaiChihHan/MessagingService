@@ -84,15 +84,9 @@ Server::handle(int client) {
         string request = get_request(client);
         // break if client is done or an error occurred
         if (request.empty())
-          break;
-            //break;
-        // parse request
-        Message message = parse_request(request);
-        // get more characters if needed
-        if (message.needed())
-            get_value(client,message);
-        // do something
-        bool success = handle_message(client,message);
+            break;
+        // send response
+        bool success = send_response(client,request);
         // break if an error occurred
         if (not success)
             break;
@@ -100,81 +94,12 @@ Server::handle(int client) {
     close(client);
 }
 
-Message
-Server::parse_request(string request) {
-    std::stringstream ss;
-    ss << request;
-    string command;
-    string name;
-    int length;
-    string value;
-    ss >> command >> name >> length;
-    Message message(command, name, length);
-    // message.toString();
-    return message;
-}
-
-void
-Server::get_value(int client, Message& message) {
-  string request = "";
-  // read until we get a newline
-  // cout << "message.getValue().size() = " << message.getValue().size() << endl;
-  // cout << "message.getLength() = " << message.getLength() << endl;
-  // cout << "getCache().size() = " << getCache().size() << endl;
-  // cout << "cache = " << getCache() << endl;
-  while (getCache().size() <= message.getLength()) {
-      request = "";
-      memset(buf_,0,buflen_);
-      int nread = recv(client,buf_,1024,0);
-      // cout << "Received message from client: " << buf_ << endl;
-      // cout << "nread: " << nread << endl;
-      if (nread < 0) {
-          if (errno == EINTR)
-              // the socket call was interrupted -- try again
-              continue;
-          else
-              // an error occurred, so break out
-              break;
-      } else if (nread == 0) {
-          // the socket is closed
-          break;
-      }
-      // be sure to use append in case we have binary data
-      request.append(buf_,nread);
-      // cout << "request = " << request << endl;
-      // cout << "request.size() = " << request.size() << endl;
-      setCache(getCache() + request);
-      // cout << "cache: " << getCache() << endl;
-      // cout << "cache.size() = " << getCache().size() << endl;
-  }
-  message.setValue(cache.substr(0, message.getLength()));
-  setCache(getCache().substr(message.getLength()));
-  // cout << "message.getValue().size() = " << message.getValue().size() << endl;
-  // cout << "message.getLength() = " << message.getLength() << endl;
-  // cout << "getCache().size() = " << getCache().size() << endl;
-  // message.toString();
-}
-
-bool
-Server::handle_message(int client, Message& message) {
-  std::stringstream ss;
-  ss << message.getLength();
-  string len = ss.str();
-  std::string response = "Stored a file called " + message.getName() + " with " + len + " bytes.\n";
-  const char* ptr = response.c_str();
-  cout << response;
-  return send(client, ptr, response.size(), 0);
-}
-
 string
 Server::get_request(int client) {
-    string request = getCache();
+    string request = "";
     // read until we get a newline
     while (request.find("\n") == string::npos) {
-        memset(buf_,0,buflen_);
         int nread = recv(client,buf_,1024,0);
-        // cout << "Received a request from client: " << buf_ << endl;
-        // cout << "nread = " << nread << endl;
         if (nread < 0) {
             if (errno == EINTR)
                 // the socket call was interrupted -- try again
@@ -191,12 +116,7 @@ Server::get_request(int client) {
     }
     // a better server would cut off anything after the newline and
     // save it in a cache
-    size_t pos = request.find("\n");
-    // cout << "position: " << pos << endl;
-    string cache = request.substr(pos + 1);
-    // cout << "cache: " << cache << endl;
-    setCache(cache);
-    return request.substr(0,pos);
+    return request;
 }
 
 bool
@@ -225,19 +145,3 @@ Server::send_response(int client, string response) {
     }
     return true;
 }
-
-string
-Server::getCache() {
-  return cache;
-}
-
-void
-Server::setCache(string cache) {
-  this->cache = cache;
-}
-/*
-get_request()
-  request cache
-
-get_value
-*/

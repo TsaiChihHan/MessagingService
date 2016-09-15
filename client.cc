@@ -51,7 +51,6 @@ Client::create() {
 
 void
 Client::close_socket() {
-    cout << "close_socket" << endl;
     close(server_);
 }
 
@@ -66,7 +65,6 @@ Client::echo() {
         // send request
         bool success = send_request(line);
         // break if an error occurred
-
         if (not success)
             break;
         // get a response
@@ -85,9 +83,7 @@ Client::send_request(string request) {
     int nleft = request.length();
     int nwritten;
     // loop to be sure it is all sent
-    cout << "nleft: " << nleft << endl;
     while (nleft) {
-        cout << "Send a request to the server: " << ptr << endl;
         if ((nwritten = send(server_, ptr, nleft, 0)) < 0) {
             if (errno == EINTR) {
                 // the socket call was interrupted -- try again
@@ -113,7 +109,6 @@ Client::get_response() {
     // read until we get a newline
     while (response.find("\n") == string::npos) {
         int nread = recv(server_,buf_,1024,0);
-        cout << "Receive a response from the server: " << buf_ << endl;
         if (nread < 0) {
             if (errno == EINTR)
                 // the socket call was interrupted -- try again
@@ -130,5 +125,6 @@ Client::get_response() {
     }
     // a better client would cut off anything after the newline and
     // save it in a cache
+    cout << response;
     return true;
 }
